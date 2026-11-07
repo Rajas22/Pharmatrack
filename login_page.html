@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PharmaTrack - Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+  <div class="box">
+    <div class="logo"><i>+</i>PharmaTrack</div>
+    <h2>Welcome back</h2>
+    <p class="sub">Log in to track your pharmaceutical batches.</p>
+    <form onsubmit="loginUser(event)">
+      <div class="form-group">
+        <label for="email">Work Email</label>
+        <input type="email" id="email" placeholder="name@company.com" autocomplete="username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" required>
+      </div>
+
+      <button type="submit" id="submitBtn">Login</button>
+    </form>
+
+    <div id="message"></div>
+
+    <div class="switch-link">
+      Don't have an account? <a href="register_page.html">Register here</a>
+    </div>
+  </div>
+
+  <script>
+    // Already logged in? Go straight to the tracker.
+    if (localStorage.getItem('pharmaToken')) {
+      window.location.href = 'tracker_page.html';
+    }
+
+    function showMessage(text, color) {
+      const msg = document.getElementById('message');
+      msg.style.display = 'block';
+      msg.className = color === 'green' ? 'ok' : 'err';
+      msg.textContent = text;
+    }
+
+    async function loginUser(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('submitBtn');
+
+      btn.disabled = true;
+
+      let response;
+      try {
+        // Relative URL: works because this page is served by the same server
+        response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+      } catch (err) {
+        showMessage('Unable to connect to server.', 'red');
+        btn.disabled = false;
+        return;
+      }
+
+      let result = {};
+      try {
+        result = await response.json();
+      } catch (err) {
+        showMessage('Server sent an unexpected response.', 'red');
+        btn.disabled = false;
+        return;
+      }
+
+      if (response.ok) {
+        localStorage.setItem('pharmaToken', result.token);
+        localStorage.setItem('pharmaUser', JSON.stringify({
+          email: email.toLowerCase(),
+          orgName: result.orgName || '',
+          role: result.role || ''
+        }));
+        showMessage(result.message || 'Login successful!', 'green');
+        // Short delay so the user can see the success message
+        setTimeout(() => { window.location.href = 'tracker_page.html'; }, 700);
+      } else {
+        showMessage(result.message || 'Invalid email or password.', 'red');
+        btn.disabled = false;
+      }
+    }
+  </script>
+
+</body>
+</html>

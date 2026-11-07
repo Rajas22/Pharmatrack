@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PharmaTrack - Register</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+  <div class="box">
+    <div class="logo"><i>+</i>PharmaTrack</div>
+    <h2>Create your account</h2>
+    <p class="sub">Register as a manufacturer, distributor or pharmacy.</p>
+    <form onsubmit="registerUser(event)">
+      <div class="form-group">
+        <label for="orgName">Organization / Entity Name</label>
+        <input type="text" id="orgName" placeholder="e.g., Apex Labs" minlength="2" maxlength="100" required>
+      </div>
+
+      <div class="form-group">
+        <label for="role">Register As</label>
+        <select id="role" required>
+          <option value="Manufacturer">Manufacturer</option>
+          <option value="Distributor">Distributor</option>
+          <option value="Pharmacy">Pharmacy</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Work Email</label>
+        <input type="email" id="email" placeholder="name@company.com" autocomplete="username" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password (min 8 characters)</label>
+        <input type="password" id="password" placeholder="Create password" minlength="8" maxlength="128" autocomplete="new-password" required>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
+      </div>
+
+      <button type="submit" id="submitBtn">Create Account</button>
+    </form>
+
+    <div id="message"></div>
+
+    <div class="switch-link">
+      Already have an account? <a href="login_page.html">Login here</a>
+    </div>
+  </div>
+
+  <script>
+    function showMessage(text, color) {
+      const msg = document.getElementById('message');
+      msg.style.display = 'block';
+      msg.className = color === 'green' ? 'ok' : 'err';
+      msg.textContent = text;
+    }
+
+    async function registerUser(e) {
+      e.preventDefault();
+      const orgName = document.getElementById('orgName').value.trim();
+      const role = document.getElementById('role').value;
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPwd = document.getElementById('confirmPassword').value;
+      const btn = document.getElementById('submitBtn');
+
+      if (password !== confirmPwd) {
+        showMessage('Passwords do not match!', 'red');
+        return;
+      }
+
+      btn.disabled = true;
+
+      let response;
+      try {
+        response = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orgName, role, email, password })
+        });
+      } catch (err) {
+        showMessage('Unable to connect to server.', 'red');
+        btn.disabled = false;
+        return;
+      }
+
+      let result = {};
+      try {
+        result = await response.json();
+      } catch (err) {
+        showMessage('Server sent an unexpected response.', 'red');
+        btn.disabled = false;
+        return;
+      }
+
+      showMessage(result.message || 'Something went wrong.', response.ok ? 'green' : 'red');
+
+      if (response.ok) {
+        setTimeout(() => { window.location.href = 'login_page.html'; }, 1800);
+      } else {
+        btn.disabled = false;
+      }
+    }
+  </script>
+
+</body>
+</html>

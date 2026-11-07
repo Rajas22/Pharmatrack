@@ -1,0 +1,47 @@
+[
+  {
+    "orgName": "Rajas",
+    "role": "Manufacturer",
+    "email": "zaderajas@gmail.com",
+    "salt": "2161acf6195bc84d311e0ba97bc5d52e",
+    "passwordHash": "8dab66ff308b8886c34311054e9bdb849ecd5d06d32a060ffefc98e37d87ed403b5d44d3abefe63aeb43cc4efd9d274e9e7656dcc34effb382551c364fb5c76a",
+    "approved": true,
+    "createdAt": "2026-09-28T06:53:46.800Z"
+  },
+  {
+    "orgName": "Aryan",
+    "role": "Distributor",
+    "email": "dhairyathorat0@gmail.com",
+    "salt": "7bbf7ea36291a0468ce2dfb57618733c",
+    "passwordHash": "02f06b2bb085a4a977e73f26cbb60955d95b4a33548df199b6e7e351d6f9c531a54bc11eda648ea7a07e9d0c3285418c1ea8117834c72856e1bd804a85a532f4",
+    "approved": true,
+    "createdAt": "2026-09-28T06:54:47.678Z"
+  },
+  {
+    "orgName": "Laukik",
+    "role": "Pharmacy",
+    "email": "laukik331@gmail.com",
+    "salt": "01b8ee6564a9d1748a4174706966057d",
+    "passwordHash": "ac7460ac663ede94657582373f6fa2b86643b31b06aeda9e797215310abf3f2d2d84faa1d79c09000ff9bdfef6aa9d96e362ec76848124363ce23e8cf4b6c0e5",
+    "approved": true,
+    "createdAt": "2026-09-28T06:55:23.864Z"
+  },
+  {
+    "orgName": "Shivraj",
+    "role": "Pharmacy",
+    "email": "shivrajadale2191@gmail.com",
+    "salt": "a9f6cc99aa27993a763a964d7c14d856",
+    "passwordHash": "3bb9e9544ccb1622502461aba01cb12cd6a91e64167d4105bcf9c8b7a2344c4942d01e5f76227496651b596533a0ca90ec82740075286cf2a2e9943016e94edf",
+    "approved": true,
+    "createdAt": "2026-10-07T10:36:41.101Z"
+  },
+  {
+    "orgName": "Swapnil",
+    "role": "Distributor",
+    "email": "swapnilsable0105@gmail.com",
+    "salt": "23d901b2cc01d49a34d0147c4bedda01",
+    "passwordHash": "5a512b431a85aeafb4d2d6761aff369e105a6878d5749f3bedc3e643e5d09d2c6ef6e631145a526df8590ab91839ec29a3844a0d28eec0227a58f82a6762dead",
+    "approved": true,
+    "createdAt": "2026-10-14T09:43:20.757Z"
+  }
+]

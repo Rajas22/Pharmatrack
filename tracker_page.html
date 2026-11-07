@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PharmaTrack - Batch Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+  <script src="theme.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef3f4; --bg-top: #e3f0f1;
+      --surface: #ffffff; --input-bg: #ffffff;
+      --ink: #12313a; --muted: #5b7279; --line: #d9e3e6;
+      --brand: #0d7a80; --brand-dark: #095b60; --brand-tint: #e3f2f3; --brand-ink: #ffffff;
+      --topbar-bg: #12313a;
+      --th-bg: #f5f8f9; --row-hover: #f3f9f9;
+      --made: #2f5fb3;   --made-bg: #e6eefb;
+      --transit: #a35a00; --transit-bg: #fdf0da;
+      --done: #1d7a4a;   --done-bg: #e2f5ea;   --done-line: #b9e2c9;
+      --danger: #b3342a; --danger-bg: #fbe9e7; --danger-line: #efc4bf; --on-danger: #ffffff;
+      --shadow-sm: rgba(18,49,58,.06); --shadow-md: rgba(18,49,58,.12);
+      --radius: 10px;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0d181b; --bg-top: #122428;
+      --surface: #14262a; --input-bg: #0f1d20;
+      --ink: #e4eef0; --muted: #93abb1; --line: #2c4349;
+      --brand: #3cc2c8; --brand-dark: #6fd6da; --brand-tint: #17383c; --brand-ink: #04262a;
+      --topbar-bg: #091316;
+      --th-bg: #1a2f34; --row-hover: #193036;
+      --made: #8db3ff;   --made-bg: #1b2b4a;
+      --transit: #f2b862; --transit-bg: #3a2c12;
+      --done: #6fd9a0;   --done-bg: #143427;   --done-line: #25563f;
+      --danger: #ff9a90; --danger-bg: #3b1d1a; --danger-line: #6b2f2a; --on-danger: #2a0f0d;
+      --shadow-sm: rgba(0,0,0,.35); --shadow-md: rgba(0,0,0,.5);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Figtree', system-ui, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
+
+    /* Top bar */
+    .topbar { background: var(--topbar-bg); color: #fff; position: sticky; top: 0; z-index: 10; }
+    .topbar-inner { max-width: 1180px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { font-family: 'Fraunces', Georgia, serif; font-size: 22px; letter-spacing: .2px; }
+    .who { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+    #userInfo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .role-badge { background: rgba(255,255,255,.14); padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+    .intro { margin: 0 0 18px; color: var(--muted); font-size: 15px; }
+
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+    .card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .card-head h2 { margin: 0; font-size: 18px; font-weight: 700; }
+    .step { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+
+    /* Controls */
+    .row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    input, select, button { font: inherit; font-size: 14px; }
+    input, select { flex: 1; min-width: 150px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--input-bg); color: var(--ink); }
+    input:focus, select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-tint); }
+    button { padding: 10px 16px; border: none; border-radius: 8px; background: var(--brand); color: var(--brand-ink); font-weight: 600; cursor: pointer; transition: background .15s; }
+    button:hover { background: var(--brand-dark); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:focus-visible, .stage:focus-visible, summary:focus-visible { outline: 3px solid #f2b84b; outline-offset: 2px; }
+    .small-btn { padding: 6px 12px; font-size: 13px; }
+    .ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); padding: 6px 14px; white-space: nowrap; }
+    .ghost:hover { background: rgba(255,255,255,.14); }
+    .outline { background: var(--surface); color: var(--brand); border: 1px solid var(--brand); }
+    .outline:hover { background: var(--brand-tint); }
+
+    /* Pipeline (doubles as status filter) */
+    .pipeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stage { text-align: left; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: var(--radius); padding: 14px 16px; }
+    .stage:hover { background: var(--surface); border-color: var(--c); }
+    .stage.active { background: var(--cbg); border-color: var(--c); }
+    .stage .count { display: block; font-family: 'Fraunces', Georgia, serif; font-size: 34px; line-height: 1.1; color: var(--c); }
+    .stage .name { font-size: 14px; font-weight: 600; }
+    .stage[data-status="Manufactured"] { --c: var(--made); --cbg: var(--made-bg); }
+    .stage[data-status="In-Transit"] { --c: var(--transit); --cbg: var(--transit-bg); }
+    .stage[data-status="Delivered"] { --c: var(--done); --cbg: var(--done-bg); }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; }
+    .scroll-box { max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--line); font-size: 14px; }
+    th { background: var(--th-bg); color: var(--muted); font-weight: 600; font-size: 13px; position: sticky; top: 0; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--row-hover); }
+    tr.picked td { background: var(--brand-tint); }
+    td.num { font-variant-numeric: tabular-nums; }
+    .empty { text-align: center; color: var(--muted); padding: 28px 10px; }
+
+    /* Status pills */
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .pill::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .pill.Manufactured { color: var(--made); background: var(--made-bg); }
+    .pill.In-Transit { color: var(--transit); background: var(--transit-bg); }
+    .pill.Delivered { color: var(--done); background: var(--done-bg); }
+
+    .note { font-size: 13px; color: var(--muted); margin: 2px 0 10px; }
+
+    /* Messages */
+    #message { display: none; padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; margin-bottom: 16px; background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-line); }
+    #message.ok { background: var(--done-bg); color: var(--done); border-color: var(--done-line); }
+    #message.show { display: block; }
+
+    .selected-box { background: var(--brand-tint); border: 1px dashed var(--brand); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; }
+    .selected-box.chosen { border-style: solid; font-weight: 600; }
+
+    details { margin-top: 14px; }
+    summary { cursor: pointer; color: var(--brand); font-size: 14px; font-weight: 600; }
+    details .row { margin-top: 12px; }
+
+    /* Theme button (top right corner of the top bar) */
+    .theme-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 50%; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); }
+    .theme-toggle:hover { background: rgba(255,255,255,.14); }
+    .theme-toggle:focus-visible { outline: 3px solid #f2b84b; outline-offset: 2px; }
+
+    /* Medicine image column */
+    th.img-col, td.img-cell { width: 76px; padding-right: 4px; }
+    .thumb { display: block; width: 52px; height: 52px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+
+    @media (max-width: 600px) {
+      .pipeline { grid-template-columns: 1fr; }
+      .stage { display: flex; justify-content: space-between; align-items: center; }
+      .stage .count { font-size: 26px; }
+      .brand { font-size: 19px; }
+      .card { padding: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+    /* ---- visual polish ---- */
+    body { background: linear-gradient(180deg, var(--bg-top) 0, var(--bg) 260px); }
+    .brand::before { content: '+'; display: inline-grid; place-items: center; width: 28px; height: 28px; margin-right: 10px; border-radius: 8px; background: var(--brand); color: var(--brand-ink); font: 700 20px/1 Arial, sans-serif; }
+    .card { box-shadow: 0 1px 2px var(--shadow-sm), 0 8px 24px var(--shadow-sm); border-radius: 14px; }
+    .stage { transition: transform .15s, box-shadow .15s; border-radius: 14px; }
+    .stage:hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--shadow-md); }
+    tbody tr { transition: background .12s; }
+    tbody tr:hover { background: var(--row-hover); }
+    thead th { position: sticky; top: 0; background: var(--th-bg); z-index: 1; }
+    .small-btn.danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-line); }
+    .small-btn.danger:hover { background: var(--danger); color: var(--on-danger); }
+    .card-head .spacer { flex: 1; }
+    .dt { white-space: nowrap; font-size: 13px; }
+    .took { font-size: 12px; color: var(--muted); white-space: nowrap; margin-top: 2px; }
+    td.na { color: var(--muted); }
+    button:focus-visible, .stage:focus-visible { outline: 3px solid var(--brand-tint); outline-offset: 2px; }
+
+    /* ---- per-role lists, deselect, partner section ---- */
+    .pipeline.two { grid-template-columns: repeat(2, 1fr); }
+    .subhead { display: flex; align-items: center; gap: 8px; margin: 20px 0 8px; font-size: 15px; font-weight: 700; }
+    .subhead:first-child { margin-top: 4px; }
+    .chip { background: var(--brand-tint); color: var(--brand-dark); border-radius: 999px; padding: 1px 9px; font-size: 12px; font-weight: 700; }
+    .tabs { margin-bottom: 10px; }
+    .tab { background: var(--surface); color: var(--brand); border: 1px solid var(--brand); }
+    .tab:hover { background: var(--brand-tint); }
+    .tab.active { background: var(--brand); color: var(--brand-ink); }
+    .tab.active:hover { background: var(--brand-dark); }
+    .detail { border-top: 1px dashed var(--line); margin-top: 18px; padding-top: 16px; }
+    .detail h3 { margin: 0 0 4px; font-size: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 12px 0 14px; }
+    .stat { background: var(--brand-tint); border-radius: 10px; padding: 10px 14px; }
+    .stat b { display: block; font-family: 'Fraunces', Georgia, serif; font-size: 26px; line-height: 1.15; color: var(--brand-dark); }
+    .stat span { font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand">PharmaTrack</span>
+      <div class="who">
+        <span id="userInfo"></span>
+        <button id="logoutBtn" class="ghost" onclick="logout()">Log out</button>
+        <span id="themeSlot"></span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <p class="intro" id="roleNote"></p>
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <!-- MANUFACTURER ONLY: drug catalog -->
+    <section class="card" id="catalogSection" style="display:none;">
+      <div class="card-head"><span class="step">1</span><h2>Choose a drug from the catalog</h2></div>
+      <div class="row">
+        <input type="search" id="search" placeholder="Search by name, strength, or form" aria-label="Search catalog" oninput="renderCatalog()">
+        <select id="catFilter" aria-label="Filter by category" onchange="renderCatalog()">
+          <option value="">All categories</option>
+        </select>
+      </div>
+      <div class="note" id="catalogCount"></div>
+      <div class="scroll-box">
+        <table>
+          <thead>
+            <tr><th class="img-col">Image</th><th>Drug</th><th>Strength</th><th>Form</th><th>Category</th><th></th></tr>
+          </thead>
+          <tbody id="catalogTable"></tbody>
+        </table>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="small-btn outline" id="showMoreBtn" style="display:none;" onclick="showMoreDrugs()"></button>
+      </div>
+
+      <details>
+        <summary>Can't find your drug? Add it to the catalog</summary>
+        <form class="row" onsubmit="addDrug(event)">
+          <input type="text" id="newName" placeholder="Drug name" maxlength="80" required>
+          <input type="text" id="newStrength" placeholder="Strength (e.g., 500mg)" maxlength="80" required>
+          <input type="text" id="newForm" placeholder="Form (e.g., Tablet)" maxlength="80" required>
+          <input type="text" id="newCategory" placeholder="Category" maxlength="80" list="categoryList" required>
+          <input type="url" id="newImage" placeholder="Image link, https://... (optional)" maxlength="500">
+          <datalist id="categoryList"></datalist>
+          <button type="submit">Add to catalog</button>
+        </form>
+      </details>
+    </section>
+
+    <!-- MANUFACTURER ONLY: add selected drug as a batch -->
+    <section class="card" id="batchSection" style="display:none;">
+      <div class="card-head"><span class="step">2</span><h2>Make a batch: for an accepted request, or send directly to one pharmacy</h2></div>
+      <div class="selected-box" id="selectedBox">No drug selected. Choose one from the catalog above.</div>
+      <form class="row" id="addForm" onsubmit="addBatch(event)">
+        <select id="fulfil" aria-label="Request or direct shipment" onchange="toggleDirect()"></select>
+        <select id="dirPharm" aria-label="Send to pharmacy" style="display:none;"></select>
+        <input type="number" id="quantity" placeholder="Quantity (units)" min="1" max="10000000" step="1" style="display:none;">
+        <input type="text" id="batchId" placeholder="Batch ID (e.g., B101)" maxlength="30" required>
+        
+        <button type="submit" id="addBtn">Add batch</button>
+        <button type="button" class="outline" id="clearBtn" disabled onclick="clearSelection()">Deselect drug</button>
+      </form>
+    </section>
+
+    <!-- PHARMACY: send requests / MANUFACTURER: accept or reject them -->
+    <section class="card" id="requestSection" style="display:none;">
+      <div class="card-head"><h2 id="reqTitle">Medicine requests</h2></div>
+      <form class="row" id="reqForm" onsubmit="sendRequest(event)" style="display:none;">
+        <select id="reqMfr" aria-label="Manufacturer" required></select>
+        <input type="search" id="reqSearch" placeholder="Search drug..." aria-label="Search drug" oninput="fillReqDrugs()">
+        <select id="reqDrug" aria-label="Drug" required></select>
+        <input type="number" id="reqQty" placeholder="Quantity" min="1" max="10000000" step="1" required>
+        <input type="text" id="reqNote" placeholder="Note (optional)" maxlength="200">
+        <button type="submit">Send request</button>
+      </form>
+      <div id="reqList"></div>
+    </section>
+
+    <!-- EVERYONE: pipeline overview, click a stage to filter -->
+    <div class="pipeline" id="pipeline" aria-label="Batches by status">
+      <button type="button" class="stage" data-status="Manufactured"><span class="count">0</span><span class="name">Manufactured</span></button>
+      <button type="button" class="stage" data-status="In-Transit"><span class="count">0</span><span class="name">In-Transit</span></button>
+      <button type="button" class="stage" data-status="Delivered"><span class="count">0</span><span class="name">Delivered</span></button>
+    </div>
+
+    <!-- EVERYONE: batch lists (each organisation only receives its own list from the server) -->
+    <section class="card">
+      <div class="card-head"><h2 id="listTitle">Batches</h2></div>
+      <div class="row">
+        <input type="search" id="batchSearch" placeholder="Search by batch ID or product" aria-label="Search batches" oninput="renderBatches()">
+        <select id="statusFilter" aria-label="Filter by status" onchange="renderBatches()">
+          <option value="">All statuses</option>
+          <option value="Manufactured">Manufactured</option>
+          <option value="In-Transit">In-Transit</option>
+          <option value="Delivered">Delivered</option>
+        </select>
+      </div>
+      <div id="batchLists"></div>
+    </section>
+
+    <!-- MANUFACTURER ONLY: distributors / pharmacies and their updates -->
+    <section class="card" id="partnerSection" style="display:none;">
+      <div class="card-head">
+        <h2>Distributors and pharmacies</h2>
+        <span class="spacer"></span>
+        <button type="button" class="small-btn outline" onclick="refreshAll()">Refresh updates</button>
+      </div>
+      <div class="row tabs" role="tablist" aria-label="Partner type">
+        <button type="button" class="small-btn tab active" role="tab" data-role="Distributor"></button>
+        <button type="button" class="small-btn tab" role="tab" data-role="Pharmacy"></button>
+      </div>
+      <div class="note">Select one to see what they have updated on your batches.</div>
+      <div class="scroll-box">
+        <table>
+          <thead><tr><th>Organization</th><th>Email</th><th>Your batches handled</th><th></th></tr></thead>
+          <tbody id="partnerTable"></tbody>
+        </table>
+      </div>
+      <div class="detail" id="partnerDetail" style="display:none;"></div>
+    </section>
+  </main>
+
+  <script>
+    const token = localStorage.getItem('pharmaToken');
+    let user = null;
+    let drugs = [];
+    let batches = [];
+    let selectedDrug = null;
+    let messageTimer = null;
+    let partners = [];            // manufacturer only
+    let partnerRole = 'Distributor';
+    let selectedPartner = null;
+
+    const CATALOG_PAGE_SIZE = 300;   // rows added each time "Show more" is clicked
+    let visibleRows = CATALOG_PAGE_SIZE;
+    let lastCatalogKey = '';
+    const STATUSES = ['Manufactured', 'In-Transit', 'Delivered'];
+
+    // What each role can do (the server enforces this too)
+    const TRANSITIONS = {
+      Distributor: { from: 'Manufactured', to: 'In-Transit', label: 'Mark In-Transit' },
+      Pharmacy: { from: 'In-Transit', to: 'Delivered', label: 'Mark Delivered' }
+    };
+
+    function goToLogin() {
+      localStorage.removeItem('pharmaToken');
+      localStorage.removeItem('pharmaUser');
+      window.location.href = 'login_page.html';
+    }
+
+    function logout() { goToLogin(); }
+
+    function showMessage(text, color) {
+      const msg = document.getElementById('message');
+      clearTimeout(messageTimer);
+      msg.textContent = text || '';
+      msg.className = text ? (color === 'green' ? 'ok show' : 'show') : '';
+      if (text && color === 'green') {
+        messageTimer = setTimeout(() => showMessage(''), 5000);
+      }
+    }
+
+    async function api(url, options = {}) {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        }
+      });
+      if (response.status === 401) {
+        goToLogin();
+        throw new Error('Not logged in');
+      }
+      let data = {};
+      try { data = await response.json(); } catch (e) { /* ignore */ }
+      if (!response.ok) throw new Error(data.message || ('Request failed (' + response.status + '). If you just updated the app, restart the server.'));
+      return data;
+    }
+
+    function cell(text, className) {
+      const td = document.createElement('td');
+      td.textContent = text;
+      if (className) td.className = className;
+      return td;
+    }
+
+    // ---------- Medicine pictures ----------
+    // Real picture when the drug has one; otherwise (or if the picture cannot load)
+    // a drawing of its dosage form, so every row always has an image.
+    const ICON_COLORS = 'fill="#d6eef0" stroke="#0d7a80" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+    const ICONS = {
+      tablet: '<circle cx="32" cy="32" r="20" ' + ICON_COLORS + '/><path d="M14 32h36" stroke="#0d7a80" stroke-width="3"/>',
+      capsule: '<g transform="rotate(-35 32 32)"><rect x="8" y="22" width="48" height="20" rx="10" ' + ICON_COLORS + '/><path d="M18 22h14v20H18a10 10 0 0 1 0-20z" fill="#0d7a80"/></g>',
+      bottle: '<rect x="25" y="7" width="14" height="9" rx="2" fill="#0d7a80"/><path d="M26 16h12v6l8 6v26a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4V28l8-6z" ' + ICON_COLORS + '/><rect x="24" y="35" width="16" height="12" rx="2" fill="#fff" stroke="#0d7a80" stroke-width="2"/>',
+      syringe: '<g transform="rotate(45 32 32)"><rect x="22" y="14" width="20" height="30" rx="3" ' + ICON_COLORS + '/><path d="M32 44v12M26 10h12M32 10v4" stroke="#0d7a80" stroke-width="3" stroke-linecap="round"/></g>',
+      tube: '<path d="M20 10h24l-3 36H23z" ' + ICON_COLORS + '/><rect x="24" y="46" width="16" height="9" rx="2" fill="#0d7a80"/><path d="M22 18h20" stroke="#0d7a80" stroke-width="3"/>',
+      inhaler: '<path d="M20 10h14v22h16v14a6 6 0 0 1-6 6H26a6 6 0 0 1-6-6z" ' + ICON_COLORS + '/><rect x="23" y="5" width="8" height="7" rx="1" fill="#0d7a80"/>',
+      sachet: '<path d="M14 12h36v40H14z" ' + ICON_COLORS + '/><path d="M14 19h36M14 45h36" stroke="#0d7a80" stroke-width="3" stroke-dasharray="3 3"/><path d="M28 32h8M32 28v8" stroke="#0d7a80" stroke-width="3" stroke-linecap="round"/>',
+      box: '<rect x="12" y="20" width="40" height="30" rx="4" ' + ICON_COLORS + '/><path d="M32 28v14M25 35h14" stroke="#0d7a80" stroke-width="3" stroke-linecap="round"/>'
+    };
+    const ICON_RULES = [
+      ['tablet', /tablet|\btab\b/i], ['capsule', /capsule|\bcap\b/i],
+      ['syringe', /injection|\binj\b|vial/i], ['inhaler', /inhaler|rotacap/i],
+      ['sachet', /sachet|powder/i], ['bottle', /syrup|suspension|solution|drops?|liquid|expectorant|infusion|mouthwash/i],
+      ['tube', /cream|ointment|gel|lotion|shampoo|spray|paste/i]
+    ];
+
+    function placeholderFor(text) {
+      const hit = ICON_RULES.find(([, re]) => re.test(text || ''));
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' + ICONS[hit ? hit[0] : 'box'] + '</svg>';
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    // One table cell with the medicine picture (fixed size, so rows stay neat)
+    function imageCell(url, formOrName, label) {
+      const td = document.createElement('td');
+      td.className = 'img-cell';
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.alt = label ? 'Picture of ' + label : 'Medicine picture';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.width = 52;
+      img.height = 52;
+      img.referrerPolicy = 'no-referrer';   // some image sites refuse requests that name this page
+      const fallback = placeholderFor(formOrName + ' ' + (label || ''));
+      if (typeof url === 'string' && /^https:\/\//i.test(url)) {
+        img.onerror = () => { img.onerror = null; img.src = fallback; };
+        img.src = url;
+      } else {
+        img.src = fallback;
+      }
+      td.appendChild(img);
+      return td;
+    }
+
+    function fail(err) {
+      if (err.message !== 'Not logged in') showMessage(err.message);
+    }
+
+    // ---------- Catalog (Manufacturer) ----------
+    function fillCategories() {
+      const cats = [...new Set(drugs.map((d) => d.category))].sort();
+      const filter = document.getElementById('catFilter');
+      const list = document.getElementById('categoryList');
+      const current = filter.value;
+
+      filter.length = 1; // keep "All categories"
+      list.textContent = '';
+      cats.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        filter.appendChild(opt);
+        const dl = document.createElement('option');
+        dl.value = c;
+        list.appendChild(dl);
+      });
+      filter.value = cats.includes(current) ? current : '';
+    }
+
+    function renderCatalog() {
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      const cat = document.getElementById('catFilter').value;
+      const tbody = document.getElementById('catalogTable');
+      tbody.textContent = '';
+
+      const matches = drugs.filter((d) =>
+        (!cat || d.category === cat) &&
+        (!q || (d.name + ' ' + d.strength + ' ' + d.form + ' ' + d.category).toLowerCase().includes(q))
+      );
+
+      // Start from the first page again whenever the search or category changes
+      const catalogKey = q + '|' + cat;
+      if (catalogKey !== lastCatalogKey) {
+        visibleRows = CATALOG_PAGE_SIZE;
+        lastCatalogKey = catalogKey;
+      }
+
+      const shown = matches.slice(0, visibleRows);
+      document.getElementById('catalogCount').textContent =
+        matches.length > shown.length
+          ? `Showing ${shown.length} of ${matches.length} drugs.`
+          : `${matches.length} drug${matches.length === 1 ? '' : 's'} found.`;
+
+      const moreBtn = document.getElementById('showMoreBtn');
+      const remaining = matches.length - shown.length;
+      moreBtn.style.display = remaining > 0 ? 'inline-block' : 'none';
+      moreBtn.textContent = `Show ${Math.min(CATALOG_PAGE_SIZE, remaining)} more (${remaining} left)`;
+
+      if (shown.length === 0) {
+        const tr = document.createElement('tr');
+        const td = cell('No drugs match your search. Try a different name, or add the drug below.', 'empty');
+        td.colSpan = 6;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      shown.forEach((d) => {
+        const tr = document.createElement('tr');
+        const isPicked = selectedDrug && selectedDrug.drugId === d.drugId;
+        if (isPicked) tr.className = 'picked';
+
+        const btnTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.className = isPicked ? 'small-btn danger' : 'small-btn outline';
+        btn.textContent = isPicked ? 'Deselect' : 'Select';
+        btn.addEventListener('click', () => (isPicked ? clearSelection() : selectDrug(d)));
+        btnTd.appendChild(btn);
+
+        tr.append(imageCell(d.image, d.form || d.name, d.name), cell(d.name), cell(d.strength), cell(d.form), cell(d.category), btnTd);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function showMoreDrugs() {
+      visibleRows += CATALOG_PAGE_SIZE;
+      renderCatalog();
+    }
+
+    function selectDrug(d) {
+      selectedDrug = d;
+      const box = document.getElementById('selectedBox');
+      box.textContent = 'Selected: ' + d.name + ' ' + d.strength + ' ' + d.form + ' (' + d.category + ')';
+      box.classList.add('chosen');
+      document.getElementById('clearBtn').disabled = false;
+      renderCatalog();
+      document.getElementById('batchSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('batchId').focus({ preventScroll: true });
+    }
+
+    // Undo a wrong choice: nothing is saved until "Add batch" is pressed
+    function clearSelection() {
+      selectedDrug = null;
+      const box = document.getElementById('selectedBox');
+      box.textContent = 'No drug selected. Choose one from the catalog above.';
+      box.classList.remove('chosen');
+      document.getElementById('clearBtn').disabled = true;
+      renderCatalog();
+    }
+
+    async function addDrug(e) {
+      e.preventDefault();
+      showMessage('');
+      try {
+        const drug = await api('/api/drugs', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: document.getElementById('newName').value,
+            strength: document.getElementById('newStrength').value,
+            form: document.getElementById('newForm').value,
+            category: document.getElementById('newCategory').value,
+            image: document.getElementById('newImage').value.trim()
+          })
+        });
+        drugs.push(drug);
+        e.target.reset();
+        fillCategories();
+        renderCatalog();
+        showMessage('Added to catalog: ' + drug.name + ' ' + drug.strength, 'green');
+      } catch (err) { fail(err); }
+    }
+
+    async function addBatch(e) {
+      e.preventDefault();
+      const direct = !document.getElementById('fulfil').value;
+      if (direct && !selectedDrug) return showMessage('Select a drug from the catalog first (or choose an accepted request).');
+      if (direct && !document.getElementById('dirPharm').value) return showMessage('Choose the pharmacy to send to.');
+      showMessage('');
+
+      try {
+        const batch = await api('/api/batches', {
+          method: 'POST',
+          body: JSON.stringify({
+            batchId: document.getElementById('batchId').value.trim(),
+            ...(direct
+              ? { drugId: selectedDrug.drugId, quantity: Number(document.getElementById('quantity').value), pharmacyEmail: document.getElementById('dirPharm').value }
+              : { requestId: document.getElementById('fulfil').value })
+          })
+        });
+        e.target.reset(); toggleDirect();
+        showMessage('Batch added: ' + batch.batchId + ' (' + batch.product + ')', 'green');
+        await loadBatches();
+      } catch (err) { fail(err); }
+    }
+
+    // ---------- Dates and time taken ----------
+    // Batches made before this feature only know when they reached their current status
+    // (updatedAt), so earlier steps show "-" instead of an invented time.
+    function stageTimes(b) {
+      return {
+        made: b.manufacturedAt || null,
+        transit: b.inTransitAt || (b.status === 'In-Transit' ? b.updatedAt : null),
+        done: b.deliveredAt || (b.status === 'Delivered' ? b.updatedAt : null)
+      };
+    }
+
+    function formatDate(iso) {
+      return new Date(iso).toLocaleString(undefined, {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function formatDuration(from, to) {
+      let sec = Math.max(0, Math.round((new Date(to) - new Date(from)) / 1000));
+      if (sec < 60) return sec + 's';
+      const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+      if (d) return d + 'd ' + h + 'h';
+      if (h) return h + 'h ' + m + 'm';
+      return m + 'm';
+    }
+
+    // A table cell with the date/time and small grey lines for the time taken
+    function timeCell(iso, notes) {
+      const td = document.createElement('td');
+      if (!iso) { td.textContent = '-'; td.className = 'na'; return td; }
+      const dt = document.createElement('div');
+      dt.className = 'dt';
+      dt.textContent = formatDate(iso);
+      td.appendChild(dt);
+      notes.filter(Boolean).forEach((n) => {
+        const d = document.createElement('div');
+        d.className = 'took';
+        d.textContent = n;
+        td.appendChild(d);
+      });
+      return td;
+    }
+
+    // ---------- Batch list (everyone) ----------
+    function renderPipeline() {
+      const active = document.getElementById('statusFilter').value;
+      document.querySelectorAll('#pipeline .stage').forEach((btn) => {
+        const s = btn.dataset.status;
+        btn.querySelector('.count').textContent = batches.filter((b) => b.status === s).length;
+        btn.classList.toggle('active', active === s);
+        btn.setAttribute('aria-pressed', active === s ? 'true' : 'false');
+      });
+    }
+
+    // Click a stage to filter; click it again to clear
+    document.querySelectorAll('#pipeline .stage').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const sel = document.getElementById('statusFilter');
+        sel.value = sel.value === btn.dataset.status ? '' : btn.dataset.status;
+        renderBatches();
+      });
+    });
+
+    // Each role sees its own lists. The server already sends only the batches
+    // that belong to this organisation (see GET /api/batches); here we just group them.
+    function batchSections() {
+      if (user.role === 'Distributor') return [
+        { title: 'Ready to dispatch', pick: (b) => b.status === 'Manufactured', empty: 'No batches are waiting for dispatch.' },
+        { title: 'My dispatched batches', pick: (b) => b.status !== 'Manufactured', empty: 'You have not dispatched any batches yet.' }
+      ];
+      if (user.role === 'Pharmacy') return [
+        { title: 'Incoming batches (in transit)', pick: (b) => b.status === 'In-Transit', empty: 'No batches are on the way right now.' },
+        { title: 'My received batches', pick: (b) => b.status === 'Delivered', empty: 'You have not received any batches yet.' }
+      ];
+      return [{ title: '', pick: () => true, empty: 'No batches yet. Add one above.' }];
+    }
+
+    function byWho(name) {
+      if (!name || name === 'system') return null;
+      return 'by ' + (name === user.orgName ? 'you' : name);
+    }
+
+    function buildBatchTable(list, emptyText) {
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      ['Image', 'Batch ID', 'Product', 'Quantity', 'Status', 'Manufactured', 'In-Transit', 'Delivered', 'Action'].forEach((h) => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        if (h === 'Image') th.className = 'img-col';
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      const tbody = document.createElement('tbody');
+      table.append(thead, tbody);
+      wrap.appendChild(table);
+
+      if (list.length === 0) {
+        const tr = document.createElement('tr');
+        const td = cell(emptyText, 'empty');
+        td.colSpan = 9;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return wrap;
+      }
+
+      const rule = TRANSITIONS[user.role];
+
+      list.forEach((b) => {
+        const tr = document.createElement('tr');
+        const qty = typeof b.quantity === 'number' ? b.quantity.toLocaleString() : '-';
+
+        const statusTd = document.createElement('td');
+        const pill = document.createElement('span');
+        pill.className = 'pill' + (STATUSES.includes(b.status) ? ' ' + b.status : '');
+        pill.textContent = b.status;
+        statusTd.appendChild(pill);
+
+        const actionTd = document.createElement('td');
+        if (rule && b.status === rule.from) {
+          const btn = document.createElement('button');
+          btn.className = 'small-btn';
+          btn.textContent = rule.label;
+          btn.addEventListener('click', () => updateStatus(b.batchId, rule.to, btn));
+          actionTd.appendChild(btn);
+        }
+        // A manufacturer can remove a batch added by mistake until it is picked up
+        if (user.role === 'Manufacturer' && b.status === 'Manufactured') {
+          const btn = document.createElement('button');
+          btn.className = 'small-btn danger';
+          btn.textContent = 'Remove';
+          btn.addEventListener('click', () => removeBatch(b, btn));
+          actionTd.appendChild(btn);
+        }
+
+        const tm = stageTimes(b);
+        const madeTd = timeCell(tm.made, [user.role === 'Manufacturer' ? null : byWho(b.createdBy)]);
+        const transitTd = timeCell(tm.transit, [byWho(b.inTransitBy), tm.made && 'Took ' + formatDuration(tm.made, tm.transit) + ' to dispatch']);
+        const doneTd = timeCell(tm.done, [
+          byWho(b.deliveredBy),
+          tm.transit && 'Transit took ' + formatDuration(tm.transit, tm.done),
+          tm.made && tm.transit && 'Total ' + formatDuration(tm.made, tm.done)
+        ]);
+
+        tr.append(imageCell(b.image, b.form || b.product, b.product), cell(b.batchId), cell(b.product), cell(qty, 'num'), statusTd, madeTd, transitTd, doneTd, actionTd);
+        tbody.appendChild(tr);
+      });
+      return wrap;
+    }
+
+    function renderBatches() {
+      const q = document.getElementById('batchSearch').value.trim().toLowerCase();
+      const st = document.getElementById('statusFilter').value;
+      const host = document.getElementById('batchLists');
+      host.textContent = '';
+      renderPipeline();
+
+      batchSections().forEach((sec) => {
+        const inSection = batches.filter(sec.pick);
+        const list = inSection.filter((b) =>
+          (!st || b.status === st) &&
+          (!q || (b.batchId + ' ' + b.product).toLowerCase().includes(q))
+        );
+
+        if (sec.title) {
+          const h = document.createElement('div');
+          h.className = 'subhead';
+          const t = document.createElement('span');
+          t.textContent = sec.title;
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.textContent = list.length;
+          h.append(t, chip);
+          host.appendChild(h);
+        }
+        host.appendChild(buildBatchTable(list, inSection.length === 0 ? sec.empty : 'No batches match your filters.'));
+      });
+    }
+
+    async function loadBatches() {
+      try {
+        batches = await api('/api/batches');
+        renderBatches();
+      } catch (err) { fail(err); }
+    }
+
+    async function updateStatus(batchId, status, btn) {
+      showMessage('');
+      btn.disabled = true;
+      try {
+        await api('/api/batches/' + encodeURIComponent(batchId) + '/status', {
+          method: 'PATCH',
+          body: JSON.stringify({ status })
+        });
+        showMessage(batchId + ' is now ' + status + '.', 'green');
+        await loadBatches();
+      } catch (err) {
+        btn.disabled = false;
+        fail(err);
+      }
+    }
+
+    async function removeBatch(b, btn) {
+      if (!confirm('Remove batch ' + b.batchId + ' (' + b.product + ')? This cannot be undone.')) return;
+      showMessage('');
+      btn.disabled = true;
+      try {
+        await api('/api/batches/' + encodeURIComponent(b.batchId), { method: 'DELETE' });
+        showMessage('Batch ' + b.batchId + ' removed.', 'green');
+        await loadBatches();
+      } catch (err) {
+        btn.disabled = false;
+        fail(err);
+      }
+    }
+
+    // ---------- Distributors and pharmacies (Manufacturer only) ----------
+    function renderPartners() {
+      document.querySelectorAll('#partnerSection .tab').forEach((t) => {
+        const role = t.dataset.role;
+        const n = partners.filter((p) => p.role === role).length;
+        t.textContent = (role === 'Distributor' ? 'Distributors' : 'Pharmacies') + ' (' + n + ')';
+        t.classList.toggle('active', role === partnerRole);
+        t.setAttribute('aria-selected', role === partnerRole ? 'true' : 'false');
+      });
+
+      const tbody = document.getElementById('partnerTable');
+      tbody.textContent = '';
+      const list = partners.filter((p) => p.role === partnerRole);
+
+      if (list.length === 0) {
+        const tr = document.createElement('tr');
+        const td = cell('No ' + (partnerRole === 'Distributor' ? 'distributors' : 'pharmacies') + ' are registered yet.', 'empty');
+        td.colSpan = 4;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      list.forEach((p) => {
+        const tr = document.createElement('tr');
+        const isPicked = selectedPartner && selectedPartner.email === p.email;
+        if (isPicked) tr.className = 'picked';
+
+        const btnTd = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.className = isPicked ? 'small-btn danger' : 'small-btn outline';
+        btn.textContent = isPicked ? 'Deselect' : 'Select';
+        btn.addEventListener('click', () => selectPartner(p));
+        btnTd.appendChild(btn);
+
+        tr.append(cell(p.orgName), cell(p.email), cell(p.handled, 'num'), btnTd);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function stat(value, label) {
+      const box = document.createElement('div');
+      box.className = 'stat';
+      const b = document.createElement('b');
+      b.textContent = value;
+      const span = document.createElement('span');
+      span.textContent = label;
+      box.append(b, span);
+      return box;
+    }
+
+    function renderPartnerDetail(data) {
+      const detail = document.getElementById('partnerDetail');
+      detail.textContent = '';
+      detail.style.display = 'block';
+
+      const h = document.createElement('h3');
+      h.textContent = 'Updates by ' + data.partner.orgName + ' (' + data.partner.role + ')';
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = 'Only your own batches are shown here.';
+      detail.append(h, note);
+
+      const stats = document.createElement('div');
+      stats.className = 'stats';
+      if (data.partner.role === 'Distributor') {
+        stats.append(stat(data.summary.total, 'Batches dispatched'), stat(data.summary.inTransit, 'Still in transit'), stat(data.summary.delivered, 'Delivered'));
+      } else {
+        stats.append(stat(data.summary.total, 'Batches received and delivered'));
+      }
+      detail.appendChild(stats);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      const table = document.createElement('table');
+      table.innerHTML = '<thead><tr><th>Batch ID</th><th>Product</th><th>Quantity</th><th>Update</th><th>Date and time</th><th>Current status</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      detail.appendChild(wrap);
+
+      if (data.updates.length === 0) {
+        const tr = document.createElement('tr');
+        const td = cell(data.partner.orgName + ' has not updated any of your batches yet.', 'empty');
+        td.colSpan = 6;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      data.updates.forEach((u) => {
+        const tr = document.createElement('tr');
+        const statusTd = document.createElement('td');
+        const pill = document.createElement('span');
+        pill.className = 'pill' + (STATUSES.includes(u.currentStatus) ? ' ' + u.currentStatus : '');
+        pill.textContent = u.currentStatus;
+        statusTd.appendChild(pill);
+        const when = u.at ? cell(formatDate(u.at), 'dt') : cell('-', 'na');
+        tr.append(cell(u.batchId), cell(u.product), cell(typeof u.quantity === 'number' ? u.quantity.toLocaleString() : '-', 'num'), cell(u.action), when, statusTd);
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadPartnerUpdates() {
+      const detail = document.getElementById('partnerDetail');
+      if (!selectedPartner) { detail.style.display = 'none'; detail.textContent = ''; return; }
+      const email = selectedPartner.email;
+      try {
+        const data = await api('/api/partners/' + encodeURIComponent(email) + '/updates');
+        if (selectedPartner && selectedPartner.email === email) renderPartnerDetail(data);
+      } catch (err) { fail(err); }
+    }
+
+    async function selectPartner(p) {
+      selectedPartner = selectedPartner && selectedPartner.email === p.email ? null : p;
+      renderPartners();
+      await loadPartnerUpdates();
+    }
+
+    async function refreshPartners() {
+      try {
+        partners = await api('/api/partners');
+        if (selectedPartner && !partners.some((p) => p.email === selectedPartner.email)) selectedPartner = null;
+        renderPartners();
+        await loadPartnerUpdates();
+      } catch (err) { fail(err); }
+    }
+
+    // Reload my batches and the partner updates (other organisations work in their own browsers)
+    async function refreshAll() {
+      await loadBatches();
+      await refreshPartners();
+    }
+
+    document.querySelectorAll('#partnerSection .tab').forEach((t) => {
+      t.addEventListener('click', () => {
+        partnerRole = t.dataset.role;
+        selectedPartner = null;
+        renderPartners();
+        loadPartnerUpdates();
+      });
+    });
+
+
+    // ---------- Requests (pharmacy sends, manufacturer decides) ----------
+    let requests = [], mfrs = [];
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function fillReqDrugs() {
+      const q = document.getElementById('reqSearch').value.trim().toLowerCase();
+      const sel = document.getElementById('reqDrug');
+      sel.innerHTML = drugs.filter((d) => (d.name + ' ' + d.strength + ' ' + d.form).toLowerCase().includes(q)).slice(0, 50)
+        .map((d) => '<option value="' + esc(d.drugId) + '">' + esc(d.name + ' ' + d.strength + ' ' + d.form) + '</option>').join('');
+    }
+
+    function renderRequests() {
+      const isM = user.role === 'Manufacturer';
+      let h = '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Medicine</th><th>Qty</th><th>' + (isM ? 'Pharmacy' : 'Manufacturer') +
+        '</th><th>Note</th><th>Status</th>' + (isM ? '<th></th>' : '') + '</tr></thead><tbody>';
+      requests.forEach((r) => {
+        h += '<tr><td>' + esc(r.requestId) + '</td><td>' + esc(r.product) + '</td><td>' + esc(r.quantity) + '</td><td>' +
+          esc(isM ? r.pharmacy : r.manufacturerName) + '</td><td>' + esc(r.note) + '</td><td>' + esc(r.status) + '</td>' +
+          (isM ? '<td>' + (r.status === 'Pending' ? '<button class="small-btn" data-id="' + esc(r.requestId) + '" data-s="Accepted">Accept</button> <button class="small-btn outline" data-id="' + esc(r.requestId) + '" data-s="Rejected">Reject</button>' : '') + '</td>' : '') + '</tr>';
+      });
+      if (!requests.length) h += '<tr><td colspan="7">No requests yet.</td></tr>';
+      document.getElementById('reqList').innerHTML = h + '</tbody></table></div>';
+      document.querySelectorAll('#reqList button[data-id]').forEach((b) => b.addEventListener('click', () => decideRequest(b.dataset.id, b.dataset.s)));
+      if (isM) {
+        const acc = requests.filter((r) => r.status === 'Accepted');
+        const f = document.getElementById('fulfil'), prev = f.value;
+        f.innerHTML = '<option value="">Direct shipment (choose pharmacy)</option>' +
+          acc.map((r) => '<option value="' + esc(r.requestId) + '">' + esc(r.requestId + ' - ' + r.product + ' x ' + r.quantity + ' (' + r.pharmacy + ')') + '</option>').join('');
+        f.value = acc.some((r) => r.requestId === prev) ? prev : '';
+        toggleDirect();
+      }
+    }
+
+    // Direct shipment (no request): show the pharmacy and quantity fields
+    function toggleDirect() {
+      const direct = !document.getElementById('fulfil').value;
+      document.getElementById('dirPharm').style.display = direct ? '' : 'none';
+      const q = document.getElementById('quantity');
+      q.style.display = direct ? '' : 'none';
+      q.required = direct;
+    }
+
+    async function loadReqs() {
+      if (user.role !== 'Pharmacy' && user.role !== 'Manufacturer') return;
+      try { requests = await api('/api/requests'); renderRequests(); } catch (err) { fail(err); }
+    }
+
+    async function sendRequest(e) {
+      e.preventDefault();
+      try {
+        await api('/api/requests', { method: 'POST', body: JSON.stringify({
+          manufacturerEmail: document.getElementById('reqMfr').value,
+          drugId: document.getElementById('reqDrug').value,
+          quantity: Number(document.getElementById('reqQty').value),
+          note: document.getElementById('reqNote').value.trim() }) });
+        e.target.reset(); fillReqDrugs();
+        showMessage('Request sent to the manufacturer.', 'green');
+        await loadReqs();
+      } catch (err) { fail(err); }
+    }
+
+    async function decideRequest(id, status) {
+      try {
+        await api('/api/requests/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify({ status }) });
+        await loadReqs();
+      } catch (err) { fail(err); }
+    }
+
+    const _loadBatches = loadBatches;
+    loadBatches = async function () { await _loadBatches(); await loadReqs(); };
+
+    async function initRequests() {
+      if (user.role !== 'Pharmacy' && user.role !== 'Manufacturer') return;
+      document.getElementById('requestSection').style.display = 'block';
+      if (user.role === 'Pharmacy') {
+        document.getElementById('reqTitle').textContent = 'Request medicines from a manufacturer';
+        document.getElementById('reqForm').style.display = 'flex';
+        try {
+          mfrs = await api('/api/manufacturers');
+          document.getElementById('reqMfr').innerHTML = mfrs.map((m) => '<option value="' + esc(m.email) + '">' + esc(m.orgName) + '</option>').join('');
+          if (!drugs.length) drugs = await api('/api/drugs');
+          fillReqDrugs();
+        } catch (err) { fail(err); }
+      } else {
+        document.getElementById('reqTitle').textContent = 'Pharmacy requests';
+        try {
+          const ph = await api('/api/pharmacies');
+          document.getElementById('dirPharm').innerHTML = '<option value="">Send to pharmacy...</option>' +
+            ph.map((m) => '<option value="' + esc(m.email) + '">' + esc(m.orgName) + '</option>').join('');
+        } catch (err) { fail(err); }
+      }
+    }
+
+    // ---------- Start ----------
+    async function init() {
+      if (!token) return goToLogin();
+
+      try {
+        user = await api('/api/me');
+      } catch (err) { return; }
+
+      const info = document.getElementById('userInfo');
+      info.textContent = user.orgName || user.email;
+      const badge = document.createElement('span');
+      badge.className = 'role-badge';
+      badge.textContent = user.role;
+      info.appendChild(badge);
+
+      const note = document.getElementById('roleNote');
+      if (user.role === 'Manufacturer') {
+        note.textContent = 'Accept pharmacy requests or ship directly to a chosen pharmacy, and follow your distributors and pharmacies below.';
+        document.getElementById('listTitle').textContent = 'My manufactured list and batch status';
+        document.getElementById('catalogSection').style.display = 'block';
+        document.getElementById('batchSection').style.display = 'block';
+        document.getElementById('partnerSection').style.display = 'block';
+        refreshPartners();
+        try {
+          drugs = await api('/api/drugs');
+          fillCategories();
+          renderCatalog();
+        } catch (err) { fail(err); }
+      } else if (user.role === 'Distributor') {
+        note.textContent = 'Mark "Manufactured" batches as "In-Transit" when they leave for the pharmacy. Batches you dispatched stay in your own list.';
+        document.getElementById('listTitle').textContent = 'Batches';
+      } else {
+        note.textContent = 'Request medicines from a manufacturer. Only your own orders appear here; mark them "Delivered" when they arrive.';
+        document.getElementById('listTitle').textContent = 'Batches';
+        const first = document.querySelector('#pipeline .stage[data-status="Manufactured"]');
+        first.style.display = 'none';
+        document.getElementById('pipeline').classList.add('two');
+      }
+
+      await initRequests();
+      loadBatches();
+    }
+
+    init();
+  </script>
+
+</body>
+</html>
