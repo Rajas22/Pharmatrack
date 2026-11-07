@@ -1,16 +1,14 @@
+
 services:
   - type: web
     name: pharmatrack
     runtime: node
-    plan: starter            # persistent disks need a paid plan
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: JWT_SECRET
         generateValue: true
       - key: AUTO_APPROVE
-        value: "true"        # set "false" if you want to approve new accounts yourself
-    disk:
-      name: pharmatrack-data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
+        value: "true"
+
